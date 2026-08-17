@@ -139,7 +139,7 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
               className="w-full h-full object-cover cursor-pointer"
               onClick={togglePlay}
             >
-              <source src="/shakira_intro.mp4" type="video/mp4" />
+              <source src="https://drive.google.com/uc?export=download&id=1nSt9jOHyaf5CS_Pn4AdvXSsQDrzwSbhe" type="video/mp4" />
               Tu navegador no soporta la reproducción directa de video.
             </video>
 
