@@ -1,0 +1,6 @@
+{
+  "name": "DealerAmigo - Autos en Puerto Rico",
+  "description": "Plataforma independiente de búsqueda de autos en Puerto Rico con asistente inteligente Amigo AI, inventario verificado y conexión con dealers autorizados.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

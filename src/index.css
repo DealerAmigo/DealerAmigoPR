@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+:root {
+  /* Brand Core */
+  --da-navy-950: #0a1128;       /* Primary canvas & deepest contrast */
+  --da-navy-900: #101f42;       /* Surfaces, cards, navigation bars */
+  --da-navy-800: #1c2d5a;       /* Card hover states & modal frames */
+  --da-turquoise-500: #00b4d8;  /* Primary brand action & active accents */
+  --da-turquoise-400: #48cae4;  /* Glowing borders, active links, tags */
+  --da-amber-500: #ffb703;      /* Callouts, ratings, estimated payment badges */
+  --da-amber-400: #fb8500;      /* Secondary high-conversion highlights */
+
+  /* Neutrals */
+  --da-white: #ffffff;
+  --da-slate-100: #f1f5f9;
+  --da-slate-400: #94a3b8;
+  --da-slate-600: #475569;
+  --da-charcoal: #1e293b;
+  --da-border: rgba(255, 255, 255, 0.08);
+  --da-border-active: rgba(0, 180, 216, 0.4);
+
+  /* Elevation & Effects */
+  --da-glass: rgba(16, 31, 66, 0.75);
+  --da-blur: 16px;
+  --da-shadow-soft: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  --da-shadow-glow: 0 0 25px rgba(0, 180, 216, 0.25);
+}
+
+@layer utilities {
+  /* Hide scrollbar for tab navigation */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .bg-da-navy-950 { background-color: var(--da-navy-950); }
+  .bg-da-navy-900 { background-color: var(--da-navy-900); }
+  .bg-da-navy-800 { background-color: var(--da-navy-800); }
+  .bg-da-turquoise-500 { background-color: var(--da-turquoise-500); }
+  .bg-da-turquoise-400 { background-color: var(--da-turquoise-400); }
+  .bg-da-amber-500 { background-color: var(--da-amber-500); }
+  .bg-da-amber-400 { background-color: var(--da-amber-400); }
+
+  .text-da-turquoise-400 { color: var(--da-turquoise-400); }
+  .text-da-turquoise-500 { color: var(--da-turquoise-500); }
+  .text-da-amber-500 { color: var(--da-amber-500); }
+  .text-da-amber-400 { color: var(--da-amber-400); }
+  .text-da-slate-100 { color: var(--da-slate-100); }
+  .text-da-slate-400 { color: var(--da-slate-400); }
+
+  .border-da-border { border-color: var(--da-border); }
+  .border-da-border-active { border-color: var(--da-border-active); }
+  .shadow-da-glow { box-shadow: var(--da-shadow-glow); }
+  .shadow-da-soft { box-shadow: var(--da-shadow-soft); }
+}
+
+/* Custom Slick Dark Scrollbar with Turquoise Accents */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--da-navy-950);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 180, 216, 0.25);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 180, 216, 0.6);
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+  background: var(--da-glass);
+  backdrop-filter: blur(var(--da-blur));
+  -webkit-backdrop-filter: blur(var(--da-blur));
+  border: 1px solid var(--da-border);
+}
+
+.glass-card {
+  background: rgba(16, 31, 66, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--da-border);
+}
+
+/* Subtle Gradient Backdrop Orbs */
+.bg-mesh {
+  background-color: var(--da-navy-950);
+  background-image: 
+    radial-gradient(at 10% 10%, rgba(0, 180, 216, 0.15) 0px, transparent 50%),
+    radial-gradient(at 90% 80%, rgba(28, 45, 90, 0.4) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(255, 183, 3, 0.04) 0px, transparent 60%);
+}
+
+/* Subtle Shimmer Animation */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2.5s infinite;
+}
