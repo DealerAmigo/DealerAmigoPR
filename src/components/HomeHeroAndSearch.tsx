@@ -46,6 +46,8 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
 
+  const [videoError, setVideoError] = useState(false);
+
   useEffect(() => {
     const video = videoRef.current;
     if (video) {
@@ -54,7 +56,10 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise
-          .then(() => setIsPlaying(true))
+          .then(() => {
+            setIsPlaying(true);
+            setVideoError(false);
+          })
           .catch(() => {
             setIsPlaying(false);
           });
@@ -73,7 +78,8 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
     }
   };
 
-  const toggleMute = () => {
+  const toggleMute = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     const video = videoRef.current;
     if (!video) return;
     const newMuted = !video.muted;
@@ -136,11 +142,15 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
               preload="auto"
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
+              onError={(e) => {
+                console.error("Video loading error:", e);
+                setVideoError(true);
+              }}
               className="w-full h-full object-cover cursor-pointer"
               onClick={togglePlay}
-              src="https://drive.google.com/uc?export=download&id=1nSt9jOHyaf5CS_Pn4AdvXSsQDrzwSbhe"
-              crossOrigin="anonymous"
             >
+              <source src="/shakira_intro.mp4" type="video/mp4" />
+              <source src="/Shakira_intro.mp4" type="video/mp4" />
               Tu navegador no soporta la reproducción directa de video.
             </video>
 
@@ -149,7 +159,7 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
               <button
                 type="button"
                 onClick={toggleMute}
-                className="px-3.5 py-2 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 text-white text-xs font-bold flex items-center gap-2 shadow-lg transition-all hover:scale-105 active:scale-95"
+                className="px-3.5 py-2 rounded-xl bg-black/70 hover:bg-black/90 backdrop-blur-md border border-white/20 text-white text-xs font-bold flex items-center gap-2 shadow-lg transition-all hover:scale-105 active:scale-95 cursor-pointer"
               >
                 {isMuted ? (
                   <>

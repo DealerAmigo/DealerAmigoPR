@@ -47,6 +47,9 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const foundDealerObj = DEALERS_PR.find(d => d.nombre === dealer);
+  const dealerMapsUrl = foundDealerObj?.mapsUrl || "https://maps.google.com";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -55,7 +58,10 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
       tipo: tipoCita,
       vehiculo_summary: vehiculoSeleccionado || "Interés General",
       dealer,
+      dealer_name: dealer,
+      assigned_dealer: dealer,
       municipio,
+      dealer_municipality: municipio,
       name: nombre,
       phone: telefono,
       email,
@@ -123,16 +129,38 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
             </p>
           </div>
 
-          {/* Appointment details recap */}
-          <div className="bg-[#0a1128] p-5 rounded-2xl border border-white/10 max-w-lg mx-auto text-left text-xs space-y-2 text-[#94a3b8]">
-            <div className="text-white font-bold pb-1 border-b border-white/10 flex items-center justify-between">
-              <span>Detalles de tu solicitud:</span>
-              <span className="text-[#ffb703]">{tipoCita}</span>
+          {/* Appointment details recap with prominent Dealer info */}
+          <div className="bg-[#0a1128] p-6 rounded-2xl border border-white/10 max-w-lg mx-auto text-left text-xs space-y-3 text-[#94a3b8]">
+            <div className="text-white font-bold pb-2 border-b border-white/10 flex items-center justify-between">
+              <span className="text-sm text-[#00b4d8] font-black">Detalles de tu solicitud</span>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#ffb703]/20 text-[#ffb703] font-bold">{tipoCita}</span>
             </div>
+
+            {/* Prominent Dealer Info Box */}
+            <div className="p-3.5 bg-[#101f42] rounded-xl border border-[#00b4d8]/40 space-y-1.5 text-white">
+              <div className="text-[10px] text-[#48cae4] font-black uppercase tracking-wider flex items-center gap-1.5">
+                <Building2 size={13} className="text-[#00b4d8]" />
+                <span>Concesionario Oficial Asignado</span>
+              </div>
+              <div className="text-sm font-black">{dealer}</div>
+              <div className="text-xs text-neutral-300 flex items-center justify-between">
+                <span>📍 {municipio}, Puerto Rico</span>
+                {dealerMapsUrl && (
+                  <a
+                    href={dealerMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#00b4d8] hover:text-[#48cae4] underline font-semibold text-[11px]"
+                  >
+                    Ver en Google Maps →
+                  </a>
+                )}
+              </div>
+            </div>
+
             <div><strong>Cliente:</strong> {nombre} ({telefono})</div>
-            <div><strong>Vehículo:</strong> {vehiculoSeleccionado || "Unidad en inventario"}</div>
-            <div><strong>Dealer / Municipio:</strong> {dealer} ({municipio})</div>
-            <div><strong>Fecha y Hora:</strong> {fecha || "Por coordinar"} a las {hora}</div>
+            <div><strong>Vehículo Seleccionado:</strong> {vehiculoSeleccionado || "Unidad en inventario"}</div>
+            <div><strong>Fecha y Hora:</strong> {fecha || "Por coordinar"} a las {hora} (Hora de Puerto Rico)</div>
             {tieneTrade && <div><strong>Trade-in:</strong> {tradeInfo || "Sí"}</div>}
           </div>
 
@@ -156,17 +184,17 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
                 setSubmitted(false);
                 navigate("/inventario");
               }}
-              className="px-6 py-3 rounded-xl bg-[#00b4d8] text-[#0a1128] font-black text-xs hover:bg-[#48cae4] transition-all"
+              className="px-6 py-3 rounded-xl bg-[#00b4d8] text-[#0a1128] font-black text-xs hover:bg-[#48cae4] transition-all cursor-pointer"
             >
               Explorar Más Autos
             </button>
 
             <button
-              onClick={() => openAmigoChat(`¡Hola Amigo! Acabo de registrar una solicitud de ${tipoCita} para ${vehiculoSeleccionado || "un vehículo"}. ¿Puedes darme recomendaciones para prepararme?`)}
-              className="px-6 py-3 rounded-xl bg-[#1c2d5a] text-[#f1f5f9] font-bold text-xs hover:bg-[#1c2d5a]/80 transition-all border border-white/10 flex items-center gap-1.5"
+              onClick={() => openAmigoChat(`¡Hola Shakira! Acabo de registrar una solicitud de cita para ver el ${vehiculoSeleccionado || "vehículo"} en ${dealer} (${municipio}). ¿Me puedes orientar sobre qué esperar en el concesionario?`)}
+              className="px-6 py-3 rounded-xl bg-[#1c2d5a] text-[#f1f5f9] font-bold text-xs hover:bg-[#1c2d5a]/80 transition-all border border-white/10 flex items-center gap-1.5 cursor-pointer"
             >
               <MessageSquare size={14} className="text-[#00b4d8]" />
-              <span>Hablar con Amigo sobre mi cita</span>
+              <span>Hablar con Shakira sobre mi cita</span>
             </button>
           </div>
         </div>
@@ -215,13 +243,21 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
               </label>
               <select
                 value={vehiculoSeleccionado}
-                onChange={(e) => setVehiculoSeleccionado(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setVehiculoSeleccionado(val);
+                  const matchedVeh = inventory.find(v => `${v["Año"]} ${v.Marca} ${v.Modelo} (${v.Precio})` === val);
+                  if (matchedVeh) {
+                    if (matchedVeh.Dealer) setDealer(matchedVeh.Dealer);
+                    if (matchedVeh.Municipio) setMunicipio(matchedVeh.Municipio);
+                  }
+                }}
                 className="w-full bg-[#0a1128] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8]"
               >
                 <option value="">Selecciona del inventario (o escribe en notas)</option>
                 {inventory.map((v, i) => (
                   <option key={i} value={`${v["Año"]} ${v.Marca} ${v.Modelo} (${v.Precio})`}>
-                    {v["Año"]} {v.Marca} {v.Modelo} — {v.Precio}
+                    {v["Año"]} {v.Marca} {v.Modelo} — {v.Precio} {v.Dealer ? `• ${v.Dealer}` : ''}
                   </option>
                 ))}
               </select>

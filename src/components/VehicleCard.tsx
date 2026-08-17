@@ -84,8 +84,18 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({ v, onAskAmigo, onBookA
       onAskAmigo(v);
     } else if (typeof window !== 'undefined') {
       window.dispatchEvent(
-        new CustomEvent('open-amigo-chat', {
-          detail: { message: `Hola Shakira, quiero más información sobre el ${data.year} ${data.make} ${data.model} de ${data.seller_name}.` }
+        new CustomEvent('open-chat-with-car', {
+          detail: {
+            year: data.year,
+            make: data.make,
+            model: data.model,
+            trim: data.trim || '',
+            price: data.price,
+            estimated_monthly_payment: data.estimated_monthly_payment,
+            dealer: data.seller_name,
+            municipality: data.municipality,
+            photo: images[0]
+          }
         })
       );
     }

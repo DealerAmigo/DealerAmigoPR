@@ -22,20 +22,28 @@ import ChatWidget from "./components/ChatWidget";
 export default function App() {
   // Enhanced inventory dataset with normalized metadata and combined catalogs
   const enhancedInventory: Vehicle[] = React.useMemo(() => {
-    const combined = [...AUTOEXITO_INVENTORY, ...DORADO_INVENTORY, ...INVENTORY];
-    return combined.map((v, index) => {
-      const copy: Vehicle = { ...v };
-      if (!copy.Carroceria) {
-        copy.Carroceria = inferCarroceria(v);
-      }
-      if (!copy.Municipio) {
-        copy.Municipio = inferMunicipio(v, index);
-      }
-      if (!copy.Dealer) {
-        copy.Dealer = inferDealer(v, index);
-      }
-      return copy;
-    });
+    const autoExito = AUTOEXITO_INVENTORY.map(v => ({
+      ...v,
+      Dealer: v.Dealer || "Auto Exito Imports",
+      Municipio: v.Municipio || "Vega Alta",
+      Carroceria: v.Carroceria || inferCarroceria(v)
+    }));
+
+    const dorado = DORADO_INVENTORY.map(v => ({
+      ...v,
+      Dealer: v.Dealer || "GT Auto Imports",
+      Municipio: v.Municipio || "Dorado",
+      Carroceria: v.Carroceria || inferCarroceria(v)
+    }));
+
+    const autoventas = INVENTORY.map(v => ({
+      ...v,
+      Dealer: v.Dealer || "AutoVentasPR",
+      Municipio: v.Municipio || "Vega Alta",
+      Carroceria: v.Carroceria || inferCarroceria(v)
+    }));
+
+    return [...autoExito, ...dorado, ...autoventas];
   }, []);
 
   // Routing State
@@ -123,6 +131,41 @@ export default function App() {
       );
     }
   };
+
+  // Global listener to navigate to a vehicle card when clicked inside chat
+  useEffect(() => {
+    const handleOpenVehicleCard = (e: any) => {
+      const { vehicle, slug, query } = e.detail || {};
+      if (vehicle) {
+        const targetSlug = slug || getVehicleSlug(vehicle);
+        navigate(`/inventario/${targetSlug}` as PageRoute);
+      } else if (slug) {
+        const found = findVehicleBySlug(enhancedInventory, slug);
+        if (found) {
+          navigate(`/inventario/${slug}` as PageRoute);
+        } else {
+          setFilters(prev => ({ ...prev, search: slug.replace(/-/g, " ") }));
+          navigate("/inventario");
+        }
+      } else if (query) {
+        const found = enhancedInventory.find(v => {
+          const q = query.toLowerCase();
+          return `${v["Año"]} ${v.Marca} ${v.Modelo}`.toLowerCase().includes(q) ||
+                 (v.FotoWeblink && v.FotoWeblink.toLowerCase().includes(q));
+        });
+        if (found) {
+          const targetSlug = getVehicleSlug(found);
+          navigate(`/inventario/${targetSlug}` as PageRoute);
+        } else {
+          setFilters(prev => ({ ...prev, search: query }));
+          navigate("/inventario");
+        }
+      }
+    };
+
+    window.addEventListener("open-vehicle-card", handleOpenVehicleCard);
+    return () => window.removeEventListener("open-vehicle-card", handleOpenVehicleCard);
+  }, [enhancedInventory]);
 
   return (
     <div className="min-h-screen bg-[#0a1128] text-white flex flex-col selection:bg-[#00b4d8]/30 selection:text-white">

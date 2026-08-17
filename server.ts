@@ -20,7 +20,7 @@ import {
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
 // Helper to pause execution
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -523,7 +523,11 @@ app.post("/api/chat", async (req, res) => {
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     
-    const allVehicles = [...AUTOEXITO_INVENTORY, ...DORADO_INVENTORY, ...INVENTORY];
+    const enhancedServerInventory = [
+      ...AUTOEXITO_INVENTORY.map(v => ({ ...v, Dealer: v.Dealer || "Auto Exito Imports", Municipio: v.Municipio || "Vega Alta" })),
+      ...DORADO_INVENTORY.map(v => ({ ...v, Dealer: v.Dealer || "GT Auto Imports", Municipio: v.Municipio || "Dorado" })),
+      ...INVENTORY.map(v => ({ ...v, Dealer: v.Dealer || "AutoVentasPR", Municipio: v.Municipio || "Vega Alta" }))
+    ];
     
     // System prompt for Shakira / Amigo (DealerAmigo Puerto Rico)
     const currentTimeStr = new Date().toLocaleString("es-PR", { timeZone: "America/Puerto_Rico", weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "numeric", minute: "numeric", hour12: true });
@@ -544,7 +548,19 @@ Representas la tecnología inteligente de la plataforma "Amigo".
 2. Manejo de pagos: Siempre que se hable de financiamiento, aclara: "Los pagos mostrados son estimados. El pago final depende del crédito, pronto, plazo, intereses, cargos y aprobación de la institución financiera."
 3. Disponibilidad: NUNCA digas simplemente que un vehículo no existe. Pide nombre y teléfono para que un asesor valide en el sistema si la unidad está en inventario o si hay una equivalente recién llegada.
 4. Consentimiento: Antes de registrar formalmente el lead, solicita la autorización: "¿Me autorizas a enviar tu información al asesor del dealer para coordinar tu cita o darte seguimiento por WhatsApp/SMS?"
-5. TRATO A DEALERS (MUY IMPORTANTE): Si el usuario dice que es dueño, gerente o representante de un dealer y quiere ver una demostración, NO le des una respuesta larga ni le expliques paso a paso cómo funciona. Háblale de forma muy conversacional y persuasiva vendiéndole tu valor como Inteligencia Artificial (dile que trabajas 24/7 calificando prospectos y agendando citas reales en su showroom), y ofrécele hacer una demostración completa invitándolo directamente a agendar en este enlace de calendario: [Agendar Demo de DealerAmigo](https://calendar.app.google/KonNG8aE8HBWqs2SA)
+5. MANEJO DE AUTOS SELECCIONADOS / CLICKEADOS POR EL CLIENTE (MANDATORIO):
+   - Cuando el cliente haga clic en un carro, mencione una foto o tarjeta de vehículo que le interese:
+     a) Saluda su elección con entusiasmo destacando el modelo, precio y en qué dealer oficial está disponible (GT Auto Imports en Dorado, Auto Exito Imports en Vega Alta, o AutoVentasPR).
+     b) Hazle de inmediato la siguiente pregunta clave:
+        "¿Te gustaría que agendemos una cita o prueba de manejo en [Nombre del Dealer] ([Municipio]), o prefieres que primero te oriente sobre las opciones de financiamiento y tu estimado de pago mensual?"
+     c) Si prefiere orientación de financiamiento: Explícale el pago mensual estimado (~$X/mes con pronto y 72 meses), aclara el disclaimer de financiamiento, y luego pregúntale si coordinan la cita en el dealer para probarlo.
+     d) Si prefiere agendar cita: Solicita su nombre, teléfono y horario de preferencia (Lunes a Sábado 9:00 AM - 5:00 PM).
+6. INFORMACIÓN DEL DEALER Y CONFIRMACIÓN DE HORA EN CITAS (ESTRICTAMENTE OBLIGATORIO):
+   - Cuando el cliente indique el día y la hora para su cita (ej. "mañana a las 2:00 PM", "el viernes a las 11:00 AM"):
+     a) Debes registrar exactamente esa fecha y hora en guardarLeadYCita en los campos appointment_date y appointment_time.
+     b) En tu mensaje de confirmación, DEBES REPETIR Y CONFIRMAR EXPLÍCITAMENTE la fecha, la hora exacta, el vehículo y el concesionario oficial asignado (ej: "Tu cita ha quedado agendada para el día [Día y Fecha] a las [Hora exacta] en [Nombre del Concesionario] en [Municipio]").
+     c) Si el cliente no indicó la hora o indicó una hora fuera del horario de 9:00 AM a 5:00 PM, pregúntale o ajústala cordialmente avisándole de inmediato la hora exacta fijada.
+7. TRATO A DEALERS: Si el usuario dice que es dueño, gerente o representante de un dealer y quiere ver una demostración, háblale de forma persuasiva vendiéndole tu valor como IA y ofrécele agendar una demo en: [Agendar Demo de DealerAmigo](https://calendar.app.google/KonNG8aE8HBWqs2SA)
 
 [DATOS DEL SISTEMA]
 Hora actual en Puerto Rico: ${currentTimeStr}
@@ -568,17 +584,28 @@ Cuando un comprador pregunte sobre la ubicación o el dealer donde está el auto
 3. RECHAZO DE SOLICITUDES FUERA DE HORARIO:
    - Explica cordialmente que los concesionarios atienden hasta las 6:00 PM y ofrece de inmediato opciones válidas en horario laboral (ej: "Mañana a las 10:00 AM o a las 2:00 PM").
 
-[INVENTARIO ACTUAL DISPONIBLE]
-${JSON.stringify(allVehicles.map(v => ({ Marca: v.Marca, Modelo: v.Modelo, Trim: v["Sub-Modelo/Trim Level"], Año: v.Año, Precio: v.Precio, Millaje: v.Millaje, Carroceria: v.Carroceria, Municipio: v.Municipio, Dealer: v.Dealer, Garantia: v.Garantia, FotoWeblink: v.FotoWeblink })), null, 2)}
+[INVENTARIO ACTUAL DISPONIBLE CON DEALER OFICIAL ASIGNADO]
+${JSON.stringify(enhancedServerInventory.map(v => ({ Marca: v.Marca, Modelo: v.Modelo, Trim: v["Sub-Modelo/Trim Level"], Año: v.Año, Precio: v.Precio, Millaje: v.Millaje, Carroceria: v.Carroceria, Municipio: v.Municipio, Dealer: v.Dealer, Garantia: v.Garantia, FotoWeblink: v.FotoWeblink })), null, 2)}
 [FIN DE INVENTARIO]
 
+[REGLA DE PRECISIÓN ABSOLUTA DE DEALER]
+- NUNCA inventes ni confundas el dealer de un vehículo. Cada vehículo en el inventario anterior tiene su campo 'Dealer' explícito ("GT Auto Imports", "Auto Exito Imports" o "AutoVentasPR").
+- Si el vehículo tiene Dealer "AutoVentasPR", DEBES decir siempre y únicamente que está en AutoVentasPR.
+- Si el vehículo tiene Dealer "Auto Exito Imports", DEBES decir siempre que está en Auto Exito Imports.
+- Si el vehículo tiene Dealer "GT Auto Imports", DEBES decir siempre que está en GT Auto Imports (Dorado).
+
 [FORMATO Y ESTILO DE RESPUESTA - ESTRICTAMENTE SECCIONADO Y LIMPIO]
-1. NO ABUSES DE LOS ASTERISCOS (**):
+1. FOTOS DIRECTAS (NUNCA MUESTRES LINKS O ENLACES DE TEXTO):
+   - ESTÁ ESTRICTAMENTE PROHIBIDO mostrar links o URLs como texto crudo (ej: NO pongas https://... ni enlaces de texto para fotos).
+   - Para mostrar la foto de un vehículo, usa SIEMPRE el formato: [FOTO](FotoWeblink)
+   - Esto hace que el sistema renderice la FOTO directamente en la pantalla del cliente como una imagen visual de alta calidad, no como un enlace.
+
+2. NO ABUSES DE LOS ASTERISCOS (**):
    - NUNCA escribas la palabra "IA" con asteriscos como **IA**.
    - No pongas ** en cada etiqueta de lista ni en palabras comunes (evita saturar con negritas como **Año:**, **Modelo:**, **Millaje:**, **nombre completo:**, etc.).
    - Utiliza negrita únicamente para destacar el modelo del carro o el precio principal, manteniendo el texto natural, limpio y fácil de leer.
 
-2. ESTRUCTURA TUS MENSAJES EN SECCIONES CLARAS (SECCIONADO):
+3. ESTRUCTURA TUS MENSAJES EN SECCIONES CLARAS (SECCIONADO):
    Divide siempre tu respuesta en secciones visuales bien separadas con doble salto de línea:
 
    • Saludo y contexto breve: 1 o 2 líneas cálidas y naturales.
@@ -590,7 +617,7 @@ ${JSON.stringify(allVehicles.map(v => ({ Marca: v.Marca, Modelo: v.Modelo, Trim:
      - Motor y Rendimiento: [Ej: 1.6L 4 cilindros, excelente rendimiento de gasolina]
      - Equipamiento: [Ej: Pantalla táctil con Apple CarPlay/Android Auto, cámara de reversa]
      - Concesionario y Municipio: [GT Auto Imports en Dorado / Auto Exito Imports en Vega Alta / AutoVentasPR]
-     - Foto: [FOTO](url) si hay foto disponible.
+     - Foto: [FOTO](url)
 
    • Disponibilidad y Horarios:
      Un párrafo claro explicando el horario de atención y las opciones para pasar (mañana o tarde, 9:00 AM a 5:00 PM).
@@ -602,7 +629,7 @@ ${JSON.stringify(allVehicles.map(v => ({ Marca: v.Marca, Modelo: v.Modelo, Trim:
 
      ¿Me autorizas a compartir estos datos con el asesor del concesionario para coordinar tu cita y darte seguimiento por WhatsApp/SMS?
 
-3. PROHIBIDO EL TEXTO APELMAZADO O EN UN SOLO BLOQUE:
+4. PROHIBIDO EL TEXTO APELMAZADO O EN UN SOLO BLOQUE:
    Nunca unas las viñetas en una sola línea. Cada viñeta debe ir en su propia línea independiente.
 
 ================================================================================
@@ -683,14 +710,17 @@ Formato de respuesta: mensajes cortos (2-4 líneas), estilo WhatsApp, sin bloque
         },
         {
           name: "guardarLeadYCita",
-          description: "Registra el prospecto calificado, su consentimiento legal y la solicitud de cita en el sistema.",
+          description: "Registra el prospecto calificado, su consentimiento legal y la solicitud de cita en el sistema incluyendo el dealer correspondiente.",
           parameters: {
             type: Type.OBJECT,
             properties: {
               name: { type: Type.STRING, description: "Nombre completo del comprador" },
               phone: { type: Type.STRING, description: "Número telefónico del comprador" },
               email: { type: Type.STRING, description: "Correo electrónico (opcional)" },
-              vehicle_id: { type: Type.STRING, description: "UUID del vehículo de interés si aplica" },
+              dealer_name: { type: Type.STRING, description: "Nombre del concesionario o dealer donde es la cita (ej. GT Auto Imports, Auto Exito Imports, AutoVentasPR)" },
+              dealer_municipality: { type: Type.STRING, description: "Municipio del dealer (ej. Dorado, Vega Alta)" },
+              vehicle_id: { type: Type.STRING, description: "UUID o resumen del vehículo de interés si aplica" },
+              vehicle_summary: { type: Type.STRING, description: "Año, Marca y Modelo del vehículo seleccionado" },
               buyer_intent: {
                 type: Type.STRING,
                 enum: [
@@ -729,7 +759,7 @@ Formato de respuesta: mensajes cortos (2-4 líneas), estilo WhatsApp, sin bloque
       tools: tools
     });
     
-    function parseFechaCita(fechaStr?: string): { startISO: string; endISO: string; isValid: boolean } {
+    function parseFechaCita(fechaStr?: string): { startISO: string; endISO: string; isValid: boolean; displayDate: string } {
       const pad = (n: number) => n.toString().padStart(2, '0');
       const nowPRStr = new Date().toLocaleString("en-US", { timeZone: "America/Puerto_Rico" });
       const nowPR = new Date(nowPRStr);
@@ -741,7 +771,7 @@ Formato de respuesta: mensajes cortos (2-4 líneas), estilo WhatsApp, sin bloque
         const hh = pad(nowPR.getHours());
         const min = pad(nowPR.getMinutes());
         const iso = `${yyyy}-${mm}-${dd}T${hh}:${min}:00-04:00`;
-        return { startISO: iso, endISO: iso, isValid: false };
+        return { startISO: iso, endISO: iso, isValid: false, displayDate: "Pendiente por confirmar" };
       }
 
       let targetYear = nowPR.getFullYear();
@@ -750,10 +780,23 @@ Formato de respuesta: mensajes cortos (2-4 líneas), estilo WhatsApp, sin bloque
 
       const clean = fechaStr.toLowerCase().trim();
 
-      if (clean.includes("mañana") || clean.includes("manana")) {
-        targetDay += 1;
+      // Check explicit date formats like YYYY-MM-DD or DD/MM/YYYY
+      const dateIsoMatch = clean.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+      const dateSlashMatch = clean.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (dateIsoMatch) {
+        targetYear = parseInt(dateIsoMatch[1], 10);
+        targetMonth = parseInt(dateIsoMatch[2], 10) - 1;
+        targetDay = parseInt(dateIsoMatch[3], 10);
+      } else if (dateSlashMatch) {
+        targetDay = parseInt(dateSlashMatch[1], 10);
+        targetMonth = parseInt(dateSlashMatch[2], 10) - 1;
+        targetYear = parseInt(dateSlashMatch[3], 10);
       } else if (clean.includes("pasado mañana") || clean.includes("pasado manana")) {
         targetDay += 2;
+      } else if (clean.includes("mañana") || clean.includes("manana")) {
+        targetDay += 1;
+      } else if (clean.includes("hoy")) {
+        // keep targetDay as today
       } else {
         const days = ["domingo", "lunes", "martes", "miércoles", "miercoles", "jueves", "viernes", "sábado", "sabado"];
         for (let i = 0; i < days.length; i++) {
@@ -768,35 +811,58 @@ Formato de respuesta: mensajes cortos (2-4 líneas), estilo WhatsApp, sin bloque
         }
       }
 
+      // Default hour is 10:00 AM AST
       let hours = 10;
       let minutes = 0;
 
-      const timeMatch = clean.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
+      // Extract time like "2:30 pm", "2pm", "14:00", "a las 3", "3:00"
+      const timeMatch = clean.match(/(?:a\s+las\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?/i);
       if (timeMatch) {
         let h = parseInt(timeMatch[1], 10);
         const m = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
-        const ampm = timeMatch[3];
+        const ampm = (timeMatch[3] || "").toLowerCase().replace(/\./g, "");
 
-        if (ampm === "pm" && h < 12) h += 12;
-        if (ampm === "am" && h === 12) h = 0;
+        if (ampm === "pm" && h < 12) {
+          h += 12;
+        } else if (ampm === "am" && h === 12) {
+          h = 0;
+        } else if (!ampm) {
+          // If no am/pm given, infer typical business hours: numbers 1..6 mean afternoon 13..18
+          if (h >= 1 && h <= 6) {
+            h += 12;
+          }
+        }
+
         if (h >= 0 && h < 24) {
           hours = h;
           minutes = m;
         }
       } else if (clean.includes("tarde")) {
         hours = 14;
+      } else if (clean.includes("mañana") && !clean.includes("de la mañana")) {
+        hours = 10;
       }
 
       let targetDate = new Date(targetYear, targetMonth, targetDay, hours, minutes, 0);
 
-      if (targetDate.getHours() >= 18 || targetDate.getHours() < 9) {
-        targetDate.setHours(10, 0, 0, 0);
+      // Business hours constraint: 9:00 AM to 5:00 PM (17:00)
+      if (targetDate.getHours() > 17 || targetDate.getHours() < 9) {
+        if (targetDate.getHours() > 17) {
+          targetDate.setHours(16, 0, 0, 0);
+        } else {
+          targetDate.setHours(10, 0, 0, 0);
+        }
       }
 
-      if (nowPR.getHours() >= 17 && targetDate.getDate() === nowPR.getDate() && targetDate.getMonth() === nowPR.getMonth()) {
+      // If scheduled for today but today's business hours already ended (after 5 PM), move to next day
+      if (nowPR.getHours() >= 17 && targetDate.getDate() === nowPR.getDate() && targetDate.getMonth() === nowPR.getMonth() && targetDate.getFullYear() === nowPR.getFullYear()) {
         targetDate.setDate(targetDate.getDate() + 1);
+        if (targetDate.getHours() > 17 || targetDate.getHours() < 9) {
+          targetDate.setHours(10, 0, 0, 0);
+        }
       }
 
+      // Sunday is closed, move to Monday
       if (targetDate.getDay() === 0) {
         targetDate.setDate(targetDate.getDate() + 1);
       }
@@ -818,7 +884,18 @@ Formato de respuesta: mensajes cortos (2-4 líneas), estilo WhatsApp, sin bloque
 
       const endISO = `${endYYYY}-${endMM}-${endDD}T${endHH}:${endMin}:00-04:00`;
 
-      return { startISO, endISO, isValid: true };
+      const options: Intl.DateTimeFormatOptions = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric', 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+      };
+      const displayDate = targetDate.toLocaleDateString("es-PR", options);
+
+      return { startISO, endISO, isValid: true, displayDate };
     }
 
     if (response.functionCalls && response.functionCalls.length > 0) {
@@ -848,7 +925,7 @@ Formato de respuesta: mensajes cortos (2-4 líneas), estilo WhatsApp, sin bloque
         const filterMaxMonthly = max_monthly_payment || pagoMensualMaximo;
         const filterMunicipality = municipality || municipio;
 
-        let matches = allVehicles.filter(v => {
+        let matches = enhancedServerInventory.filter(v => {
           if (filterCarroceria && filterCarroceria !== "Todos" && v.Carroceria && !v.Carroceria.toLowerCase().includes(filterCarroceria.toLowerCase())) return false;
           if (filterMarca && filterMarca !== "Todas" && !v.Marca.toLowerCase().includes(filterMarca.toLowerCase())) return false;
           if (filterModelo && !v.Modelo.toLowerCase().includes(filterModelo.toLowerCase()) && !(v["Sub-Modelo/Trim Level"] || "").toLowerCase().includes(filterModelo.toLowerCase())) return false;
@@ -866,7 +943,7 @@ Formato de respuesta: mensajes cortos (2-4 líneas), estilo WhatsApp, sin bloque
         });
 
         if (matches.length === 0) {
-          matches = allVehicles.slice(0, 3);
+          matches = enhancedServerInventory.slice(0, 3);
         } else {
           matches = matches.slice(0, 3);
         }
@@ -893,7 +970,10 @@ Formato de respuesta: mensajes cortos (2-4 líneas), estilo WhatsApp, sin bloque
           name,
           phone,
           email,
+          dealer_name,
+          dealer_municipality,
           vehicle_id,
+          vehicle_summary,
           vehicle,
           buyer_intent,
           has_trade_in,
@@ -918,6 +998,27 @@ Formato de respuesta: mensajes cortos (2-4 líneas), estilo WhatsApp, sin bloque
           const leadId = cleanPhone ? `LEAD-${cleanPhone}` : (globalThis.crypto ? globalThis.crypto.randomUUID() : Math.random().toString(36).substring(2));
           const nowISO = new Date().toISOString();
 
+          // Infer dealer if not explicitly sent
+          const vehText = vehicle_summary || vehicle_id || vehicle || "";
+          let finalDealer = dealer_name || "";
+          let finalMunicipio = dealer_municipality || "";
+          if (!finalDealer) {
+            const lowerVeh = vehText.toLowerCase();
+            if (lowerVeh.includes("gt auto") || lowerVeh.includes("dorado")) {
+              finalDealer = "GT Auto Imports";
+              finalMunicipio = "Dorado";
+            } else if (lowerVeh.includes("auto exito") || lowerVeh.includes("vega alta")) {
+              finalDealer = "Auto Exito Imports";
+              finalMunicipio = "Vega Alta";
+            } else {
+              finalDealer = "Auto Exito Imports";
+              finalMunicipio = "Vega Alta";
+            }
+          }
+          if (!finalMunicipio) {
+            finalMunicipio = finalDealer.toLowerCase().includes("gt auto") ? "Dorado" : "Vega Alta";
+          }
+
           const combinedFecha = appointment_date ? `${appointment_date} ${appointment_time || "10:00 AM"}` : (fechaCita || "");
           const fechaCitaClean = combinedFecha.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
           const isAppointmentScheduled = agendoCita === "Si" || Boolean(appointment_date) || (fechaCitaClean !== "" && fechaCitaClean !== "no" && fechaCitaClean !== "pendiente");
@@ -928,21 +1029,25 @@ Formato de respuesta: mensajes cortos (2-4 líneas), estilo WhatsApp, sin bloque
             "Nombre": name,
             "Telefono": phone,
             "Email": email || "",
-            "Vehiculo Interes": vehicle_id || vehicle || "",
+            "Dealer Asignado": finalDealer,
+            "Municipio Dealer": finalMunicipio,
+            "Vehiculo Interes": vehText || "Consulta de Inventario",
             "Buyer Intent": buyer_intent || "Listo para asesor",
             "Has Trade-In": has_trade_in ?? (tieneTrade ? "Si" : "No"),
             "Trade-In Info": trade_in_summary || tieneTrade || "",
             "Tipo Cita": appointment_type || "Visita al Dealer",
             "Consentimiento": consent_given === true ? "Si" : (consentimiento || "Si"),
-            "Resumen IA": resumen || `Lead ${buyer_intent || 'calificado'} por Shakira / Amigo - DealerAmigo`,
+            "Resumen IA": resumen || `Lead ${buyer_intent || 'calificado'} por Shakira - Cita en ${finalDealer} (${finalMunicipio})`,
             "Estado Lead": isAppointmentScheduled ? "cita agendada" : "en seguimiento",
             "Ultima Actividad": nowISO,
             "Fuente": "DealerAmigo Chat",
             "Agendo Cita": isAppointmentScheduled ? "Si" : "No",
             "Fecha Cita": combinedFecha,
-            "Notas": notas || "",
+            "Notas": notas || `Cita coordinada con ${finalDealer} en ${finalMunicipio}.`,
             "Metodo Pago": metodoPago || "Por definir"
           };
+
+          const { startISO, endISO, isValid, displayDate } = parseFechaCita(combinedFecha);
 
           const handleLeadOperations = async () => {
             if (isAppointmentScheduled && process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
@@ -954,13 +1059,12 @@ Formato de respuesta: mensajes cortos (2-4 líneas), estilo WhatsApp, sin bloque
                 });
                 const calendar = google.calendar({ version: 'v3', auth });
                 const calendarId = process.env.CALENDAR_ID || "1775184b52ed8719c74796900e60230515c9aa0260cd5cf9713ca56b87359689@group.calendar.google.com";
-                const { startISO, endISO } = parseFechaCita(combinedFecha);
 
                 const calendarEvent = await calendar.events.insert({
                   calendarId,
                   requestBody: {
-                    summary: `Cita DealerAmigo: ${name} - ${vehicle_id || vehicle || 'Consulta'}`,
-                    description: `Nombre: ${name}\nTeléfono: ${phone}\nTipo: ${appointment_type || 'Visita al Dealer'}\nVehículo: ${vehicle_id || vehicle || 'General'}\nTrade-in: ${trade_in_summary || 'N/A'}\nNotas: ${notas || ''}`,
+                    summary: `Cita en ${finalDealer}: ${name} - ${vehText || 'Consulta'}`,
+                    description: `Cliente: ${name}\nTeléfono: ${phone}\nDealer Asignado: ${finalDealer} (${finalMunicipio})\nVehículo: ${vehText || 'General'}\nTipo: ${appointment_type || 'Visita al Dealer'}\nTrade-in: ${trade_in_summary || 'N/A'}\nNotas: ${notas || ''}`,
                     start: { dateTime: startISO, timeZone: "America/Puerto_Rico" },
                     end: { dateTime: endISO, timeZone: "America/Puerto_Rico" },
                   }
@@ -978,7 +1082,16 @@ Formato de respuesta: mensajes cortos (2-4 líneas), estilo WhatsApp, sin bloque
           };
 
           handleLeadOperations().catch(err => console.error("Lead background save error:", err));
-          functionResult = { success: true, message: "Lead registrado exitosamente en DealerAmigo CRM y Calendar." };
+          functionResult = { 
+            success: true, 
+            message: `Cita y lead registrados exitosamente en DealerAmigo para ${finalDealer} en ${finalMunicipio}.`,
+            dealer_name: finalDealer,
+            dealer_municipality: finalMunicipio,
+            vehicle: vehText,
+            appointment_date_iso: startISO,
+            appointment_confirmed_time_text: displayDate,
+            instruction_to_assistant: `Confirma de forma explícita al usuario que su cita quedó agendada para: ${displayDate} en el dealer ${finalDealer} (${finalMunicipio}) para ver el auto ${vehText || 'seleccionado'}.`
+          };
         } catch (error: any) {
           console.error("Error saving lead:", error);
           functionResult = { success: false, error: error.message || "Error al procesar" };
@@ -1060,6 +1173,9 @@ app.post("/api/leads", async (req, res) => {
     const cleanPhone = phone.replace(/\D/g, "");
     const leadId = cleanPhone ? `LEAD-${cleanPhone}` : (globalThis.crypto ? globalThis.crypto.randomUUID() : Math.random().toString(36).substring(2));
 
+    const finalDealer = lead.dealer || lead.dealer_name || lead.assigned_dealer || "GT Auto Imports";
+    const finalMunicipio = lead.municipio || lead.dealer_municipality || (finalDealer.includes("GT Auto") ? "Dorado" : "Vega Alta");
+
     const leadData = {
       "Timestamp": nowISO,
       "Lead ID": leadId,
@@ -1068,11 +1184,13 @@ app.post("/api/leads", async (req, res) => {
       "Email": lead.email || "",
       "Vehiculo Interes": lead.vehicle_id || lead.vehicle || lead.vehicle_summary || "",
       "Consentimiento": consent ? "Si" : "Pendiente",
-      "Resumen IA": lead.resumen || lead.vehicle_summary || "Lead creado vía DealerAmigo Form",
+      "Resumen IA": lead.resumen || lead.vehicle_summary || `Lead creado vía DealerAmigo Form - Dealer: ${finalDealer}`,
       "Estado Lead": lead.agendoCita === "Si" ? "cita agendada" : "en seguimiento",
       "Ultima Actividad": nowISO,
       "Fuente": "DealerAmigo Web Engine",
-      ...lead
+      ...lead,
+      "Dealer Asignado": finalDealer,
+      "Municipio Dealer": finalMunicipio
     };
 
     console.log("[NUEVO LEAD RECIBIDO]:", leadData);
@@ -1114,8 +1232,7 @@ async function sendLeadToSheet(leadData: Record<string, any>) {
 }
 
 async function startServer() {
-  const isProd = process.env.NODE_ENV === "production" || process.env.K_SERVICE;
-  if (!isProd) {
+  if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

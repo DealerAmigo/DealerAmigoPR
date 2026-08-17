@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, X, MessageSquare, Sparkles, ShieldCheck, ExternalLink, Calendar, Car, ArrowRight } from 'lucide-react';
+import { Send, X, Sparkles, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 
@@ -10,21 +10,45 @@ const SHAKIRA_FALLBACK = "https://images.unsplash.com/photo-1573496359142-b8d877
 interface MessageItemProps {
   content: string;
   role: string;
-  onQuickReply?: (text: string) => void;
 }
 
-const FormattedMessage: React.FC<MessageItemProps> = ({ content, role, onQuickReply }) => {
+const FormattedMessage: React.FC<MessageItemProps> = ({ content, role }) => {
   if (role === "user") {
     return <div className="text-white font-medium text-xs whitespace-pre-wrap">{content}</div>;
   }
 
-  // Custom markdown renderer for assistant responses to create elegant sections
+  // Detect vehicle mention in the message
+  let detectedQuery = "";
+  const lines = content.split("\n");
+  for (const line of lines) {
+    if (line.includes("Kia") || line.includes("Toyota") || line.includes("Honda") || line.includes("Hyundai") || line.includes("Nissan") || line.includes("Ford") || line.includes("Jeep") || line.includes("Chevrolet") || line.includes("Mazda") || line.includes("BMW") || line.includes("Lexus") || line.includes("Mercedes")) {
+      const match = line.match(/\b(20\d\d\s+[A-Za-z]+(?:\s+[A-Za-z0-9]+)?)/);
+      if (match) {
+        detectedQuery = match[1];
+        break;
+      }
+    }
+  }
+
+  const handleCarCardClick = (imgSrc?: string) => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("open-vehicle-card", {
+          detail: {
+            query: detectedQuery || imgSrc,
+            imgSrc: imgSrc
+          }
+        })
+      );
+    }
+  };
+
   return (
     <div className="space-y-3 text-xs leading-relaxed text-slate-200">
       <Markdown
         components={{
           p: ({ children }) => (
-            <p className="mb-2.5 last:mb-0 text-slate-200 leading-relaxed font-normal">{children}</p>
+            <div className="mb-2.5 last:mb-0 text-slate-200 leading-relaxed font-normal">{children}</div>
           ),
           strong: ({ children }) => (
             <strong className="font-bold text-white text-[12.5px]">{children}</strong>
@@ -54,46 +78,109 @@ const FormattedMessage: React.FC<MessageItemProps> = ({ content, role, onQuickRe
             <div className="text-xs font-bold text-white mt-2 mb-1">{children}</div>
           ),
           hr: () => <hr className="my-2.5 border-white/10" />,
+          img: ({ src, alt }) => {
+            if (!src) return null;
+            return (
+              <div 
+                onClick={() => handleCarCardClick(src)}
+                className="my-3 rounded-2xl overflow-hidden border border-[#00b4d8]/40 bg-[#0a1128] shadow-lg cursor-pointer group hover:border-[#00b4d8] transition-all hover:scale-[1.01]"
+                title="Toca para ver la ficha técnica completa del auto"
+              >
+                <div className="relative h-48 w-full bg-slate-900 overflow-hidden">
+                  <img
+                    referrerPolicy="no-referrer"
+                    src={src}
+                    alt={alt || "Foto del vehículo"}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-between p-3 pointer-events-none">
+                    <span className="text-[11px] font-black text-white bg-black/60 px-2 py-0.5 rounded backdrop-blur-sm">
+                      {detectedQuery || "Ver Ficha del Auto"}
+                    </span>
+                    <span className="text-[10px] text-[#48cae4] font-bold bg-[#101f42]/90 border border-[#00b4d8]/40 px-2 py-0.5 rounded-full shadow">
+                      Toca para ver tarjeta ↗
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          },
           a: ({ href, children }) => {
-            // Check if it's an image link like [FOTO](url)
             const textStr = String(children);
-            if (textStr.toUpperCase().includes("FOTO") && href) {
+            const isImageUrl = href && (
+              href.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i) || 
+              href.includes("supabase.co/storage") ||
+              href.includes("unsplash.com") ||
+              href.includes("images") ||
+              textStr.toUpperCase().includes("FOTO") ||
+              textStr.toUpperCase().includes("VER FOTO") ||
+              textStr.toUpperCase().includes("IMAGEN")
+            );
+
+            if (isImageUrl && href) {
               return (
-                <div className="my-3 rounded-2xl overflow-hidden border border-[#00b4d8]/40 bg-[#0a1128] shadow-lg group">
-                  <div className="relative h-36 w-full bg-slate-900 overflow-hidden">
+                <div 
+                  onClick={() => handleCarCardClick(href)}
+                  className="my-3 rounded-2xl overflow-hidden border border-[#00b4d8]/40 bg-[#0a1128] shadow-lg cursor-pointer group hover:border-[#00b4d8] transition-all hover:scale-[1.01]"
+                  title="Toca para ver la ficha técnica completa del auto"
+                >
+                  <div className="relative h-48 w-full bg-slate-900 overflow-hidden">
                     <img
                       referrerPolicy="no-referrer"
                       src={href}
-                      alt="Foto de la unidad"
+                      alt="Foto del vehículo"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-2.5">
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#00b4d8] text-[#0a1128] text-[10px] font-black shadow"
-                      >
-                        <span>Ver Foto Completa</span>
-                        <ExternalLink size={10} />
-                      </a>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-between p-3 pointer-events-none">
+                      <span className="text-[11px] font-black text-white bg-black/60 px-2 py-0.5 rounded backdrop-blur-sm">
+                        {detectedQuery || "Ver Ficha del Auto"}
+                      </span>
+                      <span className="text-[10px] text-[#48cae4] font-bold bg-[#101f42]/90 border border-[#00b4d8]/40 px-2 py-0.5 rounded-full shadow">
+                        Toca para ver tarjeta ↗
+                      </span>
                     </div>
                   </div>
                 </div>
               );
             }
 
-            return (
-              <a
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#00b4d8] hover:text-[#48cae4] underline font-semibold inline-flex items-center gap-1"
-              >
-                <span>{children}</span>
-                <ExternalLink size={10} />
-              </a>
-            );
+            // If it's a regular text link, render as clean bold text without showing raw URLs
+            if (href && (href.startsWith("http://") || href.startsWith("https://"))) {
+              // If it looks like an image URL by query params or extension, show as image
+              if (href.includes("autoventas") || href.includes("gtauto") || href.includes("autoexito") || href.includes("cars")) {
+                return (
+                  <div 
+                    onClick={() => handleCarCardClick(href)}
+                    className="my-3 rounded-2xl overflow-hidden border border-[#00b4d8]/40 bg-[#0a1128] shadow-lg cursor-pointer group hover:border-[#00b4d8] transition-all hover:scale-[1.01]"
+                    title="Toca para ver la ficha técnica completa del auto"
+                  >
+                    <div className="relative h-48 w-full bg-slate-900 overflow-hidden">
+                      <img
+                        referrerPolicy="no-referrer"
+                        src={href}
+                        alt="Foto del auto"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-between p-3 pointer-events-none">
+                        <span className="text-[11px] font-black text-white bg-black/60 px-2 py-0.5 rounded backdrop-blur-sm">
+                          {detectedQuery || "Ver Ficha del Auto"}
+                        </span>
+                        <span className="text-[10px] text-[#48cae4] font-bold bg-[#101f42]/90 border border-[#00b4d8]/40 px-2 py-0.5 rounded-full shadow">
+                          Toca para ver tarjeta ↗
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <span className="text-[#00b4d8] font-bold">
+                  {children}
+                </span>
+              );
+            }
+
+            return <span className="font-semibold text-white">{children}</span>;
           }
         }}
       >
@@ -115,6 +202,15 @@ export default function ChatWidget() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+
+  // Auto-open after 8 seconds to give a warm welcome
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setOpen(true);
+    }, 8000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const handleOpenAmigo = (e: any) => {
@@ -143,9 +239,17 @@ export default function ChatWidget() {
     };
 
     const handleCarClick = (e: any) => {
-      const { year, make, model } = e.detail || {};
+      const { year, make, model, trim, price, estimated_monthly_payment, dealer, municipality, photo } = e.detail || {};
       setOpen(true);
-      const text = `¡Excelente elección! Noté que te interesa el ${year} ${make} ${model}.\n\n¿Te gustaría que verifiquemos pagos mensuales estimados o coordinemos una prueba de manejo en el dealer?`;
+
+      const dealerName = dealer || "GT Auto Imports";
+      const munName = municipality || (dealerName.includes("GT Auto") ? "Dorado" : "Vega Alta");
+      const priceText = price ? `${Number(price).toLocaleString()}` : "precio de oportunidad";
+      const paymentText = estimated_monthly_payment ? ` (pago est. ~${estimated_monthly_payment}/mes)` : "";
+      const photoMarkdown = photo ? `\n\n[FOTO](${photo})\n\n` : "\n\n";
+
+      const text = `¡Excelente elección! Veo que te interesa el **${year || ''} ${make || ''} ${model || ''} ${trim || ''}**${photoMarkdown}Esta unidad está disponible en **${dealerName}** (${munName}) por **${priceText}**${paymentText}.\n\n¿Te gustaría que agendemos una cita o prueba de manejo en el dealer, o prefieres que primero te oriente sobre las opciones de financiamiento y el pago mensual cómodo?`;
+
       setMsgs(prev => [...prev, { role: "assistant", content: text }]);
     };
 
@@ -248,7 +352,7 @@ export default function ChatWidget() {
                         : "bg-[#101f42]/95 text-slate-100 border border-white/10 rounded-tl-none"
                     }`}
                   >
-                    <FormattedMessage content={m.content} role={m.role} onQuickReply={handleSend} />
+                    <FormattedMessage content={m.content} role={m.role} />
                   </div>
                 </div>
               ))}

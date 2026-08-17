@@ -185,12 +185,30 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
                 <button
                   onClick={() => {
                     onClose();
-                    openAmigoChat(`¡Hola Amigo! Me interesa el ${vehicle["Año"]} ${vehicle.Marca} ${vehicle.Modelo} con precio de ${vehicle.Precio}. ¿Cómo quedaría mi pago mensual si doy un pronto de $${downPayment}?`);
+                    if (typeof window !== 'undefined') {
+                      window.dispatchEvent(
+                        new CustomEvent('open-chat-with-car', {
+                          detail: {
+                            year: vehicle["Año"],
+                            make: vehicle.Marca,
+                            model: vehicle.Modelo,
+                            trim: vehicle["Sub-Modelo/Trim Level"] || '',
+                            price: priceNum,
+                            estimated_monthly_payment: monthlyCalc,
+                            dealer: dealer,
+                            municipality: municipio,
+                            photo: photos[0] || ''
+                          }
+                        })
+                      );
+                    } else {
+                      openAmigoChat(`¡Hola Shakira! Me interesa el ${vehicle["Año"]} ${vehicle.Marca} ${vehicle.Modelo} (${dealer}). ¿Me puedes orientar sobre financiamiento y citas?`);
+                    }
                   }}
-                  className="w-full py-3 rounded-xl bg-[#1c2d5a] hover:bg-[#1c2d5a]/80 text-[#f1f5f9] font-bold text-xs border border-white/10 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-[#1c2d5a] hover:bg-[#1c2d5a]/80 text-[#f1f5f9] font-bold text-xs border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <MessageSquare size={15} className="text-[#00b4d8]" />
-                  <span>Preguntar a Amigo sobre este carro</span>
+                  <span>Preguntar a Shakira sobre este carro</span>
                 </button>
               </div>
             </div>

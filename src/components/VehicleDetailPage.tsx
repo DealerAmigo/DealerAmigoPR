@@ -369,12 +369,30 @@ export const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({
             {/* Direct CTA Buttons: Shakira, Agenda & Lead Form */}
             <div className="space-y-3 pt-2">
               <button
-                onClick={() =>
-                  openAmigoChat(
-                    `¡Hola Shakira! Me interesa la ficha técnica del ${vehicle["Año"]} ${vehicle.Marca} ${vehicle.Modelo} publicado en ${formatCurrency(priceNum)}. ¿Está disponible para prueba de manejo?`
-                  )
-                }
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#00b4d8] via-[#48cae4] to-[#00b4d8] text-[#0a1128] font-black text-sm shadow-[0_0_25px_rgba(0,180,216,0.45)] hover:brightness-110 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(
+                      new CustomEvent('open-chat-with-car', {
+                        detail: {
+                          year: vehicle["Año"],
+                          make: vehicle.Marca,
+                          model: vehicle.Modelo,
+                          trim: vehicle["Sub-Modelo/Trim Level"] || '',
+                          price: priceNum,
+                          estimated_monthly_payment: monthlyCalc,
+                          dealer: dealer,
+                          municipality: municipio,
+                          photo: photos[0] || ''
+                        }
+                      })
+                    );
+                  } else {
+                    openAmigoChat(
+                      `¡Hola Shakira! Me interesa la ficha técnica del ${vehicle["Año"]} ${vehicle.Marca} ${vehicle.Modelo} (${dealer}). ¿Está disponible para prueba de manejo?`
+                    );
+                  }
+                }}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#00b4d8] via-[#48cae4] to-[#00b4d8] text-[#0a1128] font-black text-sm shadow-[0_0_25px_rgba(0,180,216,0.45)] hover:brightness-110 transition-all hover:scale-[1.02] flex items-center justify-center gap-2 cursor-pointer"
               >
                 <MessageSquare size={18} />
                 <span>Hablar con Shakira sobre este Auto</span>

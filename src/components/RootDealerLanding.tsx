@@ -198,8 +198,7 @@ export const RootDealerLanding: React.FC<RootDealerLandingProps> = ({
                 controls
                 preload="auto"
                 className="w-full h-full object-cover"
-                src="https://drive.google.com/uc?export=download&id=1nSt9jOHyaf5CS_Pn4AdvXSsQDrzwSbhe"
-                crossOrigin="anonymous"
+                src="/shakira_intro.mp4"
               >
                 Tu navegador no soporta la reproducción de video.
               </video>

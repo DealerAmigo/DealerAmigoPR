@@ -37,7 +37,7 @@ export const DealerRegistration: React.FC<DealerRegistrationProps> = ({ navigate
       phone: formData.telefono,
       email: formData.email,
       dealer: formData.nombreComercial || formData.nombreLegal,
-      municipio: formData.pueblo,
+      municipio: formData.municipio,
       Fuente: "DealerRegistration",
       timestamp: new Date().toISOString()
     };
