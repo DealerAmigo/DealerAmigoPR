@@ -1114,7 +1114,8 @@ async function sendLeadToSheet(leadData: Record<string, any>) {
 }
 
 async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
+  const isProd = process.env.NODE_ENV === "production" || process.env.K_SERVICE;
+  if (!isProd) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
