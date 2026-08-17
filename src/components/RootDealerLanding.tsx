@@ -190,18 +190,19 @@ export const RootDealerLanding: React.FC<RootDealerLandingProps> = ({
       <section className="max-w-[1240px] mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-6 relative aspect-video w-full rounded-3xl overflow-hidden shadow-[0_0_30px_rgba(0,180,216,0.25)] border border-white/10 bg-[#0a1128]">
-            <video
-              autoPlay
-              muted
-              playsInline
-              loop
-              controls
-              preload="auto"
-              className="w-full h-full object-cover"
-            >
-              <source src="https://drive.google.com/uc?export=download&id=1nSt9jOHyaf5CS_Pn4AdvXSsQDrzwSbhe" type="video/mp4" />
-              Tu navegador no soporta la reproducción de video.
-            </video>
+              <video
+                autoPlay
+                muted
+                playsInline
+                loop
+                controls
+                preload="auto"
+                className="w-full h-full object-cover"
+                src="https://drive.google.com/uc?export=download&id=1nSt9jOHyaf5CS_Pn4AdvXSsQDrzwSbhe"
+                crossOrigin="anonymous"
+              >
+                Tu navegador no soporta la reproducción de video.
+              </video>
           </div>
 
           <div className="lg:col-span-6 bg-gradient-to-br from-[#101f42] to-[#0a1128] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">

@@ -138,8 +138,9 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
               onPause={() => setIsPlaying(false)}
               className="w-full h-full object-cover cursor-pointer"
               onClick={togglePlay}
+              src="https://drive.google.com/uc?export=download&id=1nSt9jOHyaf5CS_Pn4AdvXSsQDrzwSbhe"
+              crossOrigin="anonymous"
             >
-              <source src="https://drive.google.com/uc?export=download&id=1nSt9jOHyaf5CS_Pn4AdvXSsQDrzwSbhe" type="video/mp4" />
               Tu navegador no soporta la reproducción directa de video.
             </video>
 
