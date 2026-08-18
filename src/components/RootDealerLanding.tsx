@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { PageRoute, Vehicle } from "../types";
 import { 
   Building2, 
@@ -17,7 +17,10 @@ import {
   Award,
   ChevronRight,
   Calculator,
-  Search
+  Search,
+  Volume2,
+  VolumeX,
+  Play
 } from "lucide-react";
 import { formatCurrency } from "../utils/helpers";
 
@@ -35,6 +38,68 @@ export const RootDealerLanding: React.FC<RootDealerLandingProps> = ({
   const [unidades, setUnidades] = useState(45);
   const estimatedMonthlyLeads = Math.round(unidades * 3.8);
   const estimatedPreQualifiedAppointments = Math.round(estimatedMonthlyLeads * 0.45);
+
+  // Video state
+  const heroVideoRef = useRef<HTMLVideoElement>(null);
+  const [isHeroMuted, setIsHeroMuted] = useState(true);
+  const [isHeroPlaying, setIsHeroPlaying] = useState(false);
+
+  useEffect(() => {
+    const video = heroVideoRef.current;
+    if (!video) return;
+
+    video.muted = true;
+    video.defaultMuted = true;
+
+    const playVideo = () => {
+      const p = video.play();
+      if (p !== undefined) {
+        p.then(() => setIsHeroPlaying(true))
+         .catch((err) => {
+           console.warn("Autoplay deferred:", err);
+           setIsHeroPlaying(false);
+         });
+      }
+    };
+
+    playVideo();
+    video.addEventListener("loadedmetadata", playVideo);
+    video.addEventListener("canplay", playVideo);
+    video.addEventListener("playing", () => setIsHeroPlaying(true));
+    video.addEventListener("pause", () => setIsHeroPlaying(false));
+
+    return () => {
+      video.removeEventListener("loadedmetadata", playVideo);
+      video.removeEventListener("canplay", playVideo);
+    };
+  }, []);
+
+  const toggleHeroPlay = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const video = heroVideoRef.current;
+    if (!video) return;
+
+    if (video.paused) {
+      video.play().then(() => setIsHeroPlaying(true)).catch(() => {});
+    } else {
+      video.pause();
+      setIsHeroPlaying(false);
+    }
+  };
+
+  const toggleHeroMute = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const video = heroVideoRef.current;
+    if (!video) return;
+
+    const newMuted = !video.muted;
+    video.muted = newMuted;
+    setIsHeroMuted(newMuted);
+
+    if (video.paused) {
+      video.play().then(() => setIsHeroPlaying(true)).catch(() => {});
+    }
+  };
 
   const bmwFromGT = inventory.find(v => v.Marca.toLowerCase() === "bmw" && v.Dealer?.toLowerCase().includes("gt auto"));
   const jeepsFromGT = inventory.filter(v => v.Marca.toLowerCase() === "jeep" && v.Dealer?.toLowerCase().includes("gt auto"));
@@ -106,6 +171,64 @@ export const RootDealerLanding: React.FC<RootDealerLandingProps> = ({
               <MessageSquare size={17} className="text-[#00b4d8]" />
               <span>Probar Demo con Shakira</span>
             </button>
+          </div>
+
+          {/* Shakira Presentation Video Hero Showcase */}
+          <div className="w-full max-w-4xl mx-auto rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,180,216,0.3)] border border-[#00b4d8]/40 bg-[#0a1128] relative aspect-video mt-6 mb-8 group">
+            <video 
+              ref={heroVideoRef}
+              src="/shakira_intro.mp4"
+              poster="/shakira_poster.jpg"
+              autoPlay 
+              muted 
+              loop 
+              playsInline 
+              controls
+              preload="auto"
+              className="w-full h-full object-cover cursor-pointer"
+              onClick={toggleHeroPlay}
+            >
+              <source src="/shakira_intro.mp4" type="video/mp4" />
+              <source src="/Shakira_intro.mp4" type="video/mp4" />
+              Tu navegador no soporta la reproducción directa de video.
+            </video>
+
+            {/* Floating Sound Controls Overlay */}
+            <div className="absolute top-4 right-4 z-30 flex items-center gap-2 pointer-events-auto">
+              <button
+                type="button"
+                onClick={toggleHeroMute}
+                className="px-3.5 py-2 rounded-xl bg-black/75 hover:bg-black/95 backdrop-blur-md border border-white/20 text-white text-xs font-bold flex items-center gap-2 shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                {isHeroMuted ? (
+                  <>
+                    <VolumeX size={15} className="text-[#ffb703]" />
+                    <span>Activar Sonido</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 size={15} className="text-[#00b4d8]" />
+                    <span>Silenciar</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Play Button Overlay when paused */}
+            {!isHeroPlaying && (
+              <div 
+                className="absolute inset-0 bg-black/30 pointer-events-none flex items-center justify-center z-20"
+              >
+                <button
+                  type="button"
+                  onClick={toggleHeroPlay}
+                  aria-label="Reproducir video de Shakira"
+                  className="pointer-events-auto w-16 h-16 rounded-full bg-[#00b4d8] text-[#0a1128] flex items-center justify-center shadow-[0_0_30px_rgba(0,180,216,0.8)] hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Play size={28} className="fill-current ml-1" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -197,9 +320,12 @@ export const RootDealerLanding: React.FC<RootDealerLandingProps> = ({
                 loop
                 controls
                 preload="auto"
+                poster="/shakira_poster.jpg"
                 className="w-full h-full object-cover"
                 src="/shakira_intro.mp4"
               >
+                <source src="/shakira_intro.mp4" type="video/mp4" />
+                <source src="/Shakira_intro.mp4" type="video/mp4" />
                 Tu navegador no soporta la reproducción de video.
               </video>
           </div>

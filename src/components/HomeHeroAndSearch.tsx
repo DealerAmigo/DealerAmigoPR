@@ -44,15 +44,17 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
   // Video player state
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(true);
-
+  const [isPlaying, setIsPlaying] = useState(false);
   const [videoError, setVideoError] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
-    if (video) {
-      video.defaultMuted = true;
-      video.muted = true;
+    if (!video) return;
+
+    video.muted = true;
+    video.defaultMuted = true;
+
+    const attemptPlay = () => {
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise
@@ -60,18 +62,41 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
             setIsPlaying(true);
             setVideoError(false);
           })
-          .catch(() => {
+          .catch((err) => {
+            console.warn("Autoplay deferred or blocked by browser:", err);
             setIsPlaying(false);
           });
       }
-    }
+    };
+
+    // Try immediately and on ready events
+    attemptPlay();
+
+    video.addEventListener("loadedmetadata", attemptPlay);
+    video.addEventListener("canplay", attemptPlay);
+    video.addEventListener("playing", () => setIsPlaying(true));
+    video.addEventListener("pause", () => setIsPlaying(false));
+
+    return () => {
+      video.removeEventListener("loadedmetadata", attemptPlay);
+      video.removeEventListener("canplay", attemptPlay);
+    };
   }, []);
 
-  const togglePlay = () => {
+  const togglePlay = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     const video = videoRef.current;
     if (!video) return;
+
     if (video.paused) {
-      video.play().then(() => setIsPlaying(true)).catch(() => {});
+      video.play()
+        .then(() => {
+          setIsPlaying(true);
+          setVideoError(false);
+        })
+        .catch((err) => {
+          console.error("Error playing video:", err);
+        });
     } else {
       video.pause();
       setIsPlaying(false);
@@ -82,9 +107,11 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
     if (e) e.stopPropagation();
     const video = videoRef.current;
     if (!video) return;
+
     const newMuted = !video.muted;
     video.muted = newMuted;
     setIsMuted(newMuted);
+
     if (video.paused) {
       video.play().then(() => setIsPlaying(true)).catch(() => {});
     }
@@ -134,6 +161,8 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
           <div className="w-full max-w-4xl mx-auto rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(0,180,216,0.25)] border border-[#00b4d8]/30 bg-[#0a1128] relative aspect-video mt-4 mb-6 group">
             <video 
               ref={videoRef}
+              src="/shakira_intro.mp4"
+              poster="/shakira_poster.jpg"
               autoPlay 
               muted 
               loop 
@@ -155,11 +184,11 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
             </video>
 
             {/* Floating Sound and Play/Pause Controls Overlay */}
-            <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+            <div className="absolute top-4 right-4 z-30 flex items-center gap-2 pointer-events-auto">
               <button
                 type="button"
                 onClick={toggleMute}
-                className="px-3.5 py-2 rounded-xl bg-black/70 hover:bg-black/90 backdrop-blur-md border border-white/20 text-white text-xs font-bold flex items-center gap-2 shadow-lg transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-black/75 hover:bg-black/95 backdrop-blur-md border border-white/20 text-white text-xs font-bold flex items-center gap-2 shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer"
               >
                 {isMuted ? (
                   <>
@@ -178,12 +207,16 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
             {/* Play Button Overlay when paused */}
             {!isPlaying && (
               <div 
-                onClick={togglePlay}
-                className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center cursor-pointer z-10"
+                className="absolute inset-0 bg-black/30 pointer-events-none flex items-center justify-center z-20"
               >
-                <div className="w-16 h-16 rounded-full bg-[#00b4d8] text-[#0a1128] flex items-center justify-center shadow-[0_0_30px_rgba(0,180,216,0.6)] hover:scale-110 transition-transform">
+                <button
+                  type="button"
+                  onClick={togglePlay}
+                  aria-label="Reproducir video de Shakira"
+                  className="pointer-events-auto w-16 h-16 rounded-full bg-[#00b4d8] text-[#0a1128] flex items-center justify-center shadow-[0_0_30px_rgba(0,180,216,0.8)] hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                >
                   <Play size={28} className="fill-current ml-1" />
-                </div>
+                </button>
               </div>
             )}
           </div>

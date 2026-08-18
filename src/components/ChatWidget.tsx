@@ -12,31 +12,45 @@ interface MessageItemProps {
   role: string;
 }
 
+// Helper to extract vehicle name from image URL or context
+function getVehicleInfoFromImage(content: string, imgSrc: string): { title: string; query: string } {
+  // Try to find the section right above this image
+  const parts = content.split(imgSrc);
+  if (parts.length > 1) {
+    const textBefore = parts[0];
+    const lines = textBefore.split("\n").filter(l => l.trim().length > 0);
+    // Scan backwards from image location
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i];
+      // Match patterns like "2023 Jeep Renegade" or "2021 Chevrolet Trailblazer"
+      const matchYearMake = line.match(/\b(20\d\d\s+[A-Za-z0-9\-\s]{3,30})/);
+      if (matchYearMake && !line.toLowerCase().includes("dealer") && !line.toLowerCase().includes("tel")) {
+        const cleanTitle = matchYearMake[1].replace(/[*_#\[\]]/g, "").trim();
+        return { title: cleanTitle, query: cleanTitle };
+      }
+    }
+  }
+
+  // Fallback: Check if URL or content has specific keywords
+  return { title: "Ver Ficha Técnica", query: imgSrc };
+}
+
 const FormattedMessage: React.FC<MessageItemProps> = ({ content, role }) => {
   if (role === "user") {
     return <div className="text-white font-medium text-xs whitespace-pre-wrap">{content}</div>;
   }
 
-  // Detect vehicle mention in the message
-  let detectedQuery = "";
-  const lines = content.split("\n");
-  for (const line of lines) {
-    if (line.includes("Kia") || line.includes("Toyota") || line.includes("Honda") || line.includes("Hyundai") || line.includes("Nissan") || line.includes("Ford") || line.includes("Jeep") || line.includes("Chevrolet") || line.includes("Mazda") || line.includes("BMW") || line.includes("Lexus") || line.includes("Mercedes")) {
-      const match = line.match(/\b(20\d\d\s+[A-Za-z]+(?:\s+[A-Za-z0-9]+)?)/);
-      if (match) {
-        detectedQuery = match[1];
-        break;
-      }
-    }
-  }
+  const handleCarCardClick = (imgSrc: string, customTitle?: string) => {
+    const { title, query } = getVehicleInfoFromImage(content, imgSrc);
+    const finalQuery = customTitle || title !== "Ver Ficha Técnica" ? (customTitle || title) : imgSrc;
 
-  const handleCarCardClick = (imgSrc?: string) => {
     if (typeof window !== "undefined") {
       window.dispatchEvent(
         new CustomEvent("open-vehicle-card", {
           detail: {
-            query: detectedQuery || imgSrc,
-            imgSrc: imgSrc
+            query: finalQuery,
+            imgSrc: imgSrc,
+            exactPhoto: imgSrc
           }
         })
       );
@@ -80,24 +94,27 @@ const FormattedMessage: React.FC<MessageItemProps> = ({ content, role }) => {
           hr: () => <hr className="my-2.5 border-white/10" />,
           img: ({ src, alt }) => {
             if (!src) return null;
+            const info = getVehicleInfoFromImage(content, src);
+            const cardTitle = alt && alt !== "Foto del vehículo" && alt !== "image" ? alt : info.title;
+
             return (
               <div 
-                onClick={() => handleCarCardClick(src)}
+                onClick={() => handleCarCardClick(src, cardTitle)}
                 className="my-3 rounded-2xl overflow-hidden border border-[#00b4d8]/40 bg-[#0a1128] shadow-lg cursor-pointer group hover:border-[#00b4d8] transition-all hover:scale-[1.01]"
-                title="Toca para ver la ficha técnica completa del auto"
+                title={`Toca para ver la ficha técnica de ${cardTitle}`}
               >
                 <div className="relative h-48 w-full bg-slate-900 overflow-hidden">
                   <img
                     referrerPolicy="no-referrer"
                     src={src}
-                    alt={alt || "Foto del vehículo"}
+                    alt={cardTitle}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-between p-3 pointer-events-none">
-                    <span className="text-[11px] font-black text-white bg-black/60 px-2 py-0.5 rounded backdrop-blur-sm">
-                      {detectedQuery || "Ver Ficha del Auto"}
+                    <span className="text-[11px] font-black text-white bg-black/60 px-2 py-0.5 rounded backdrop-blur-sm max-w-[70%] truncate">
+                      {cardTitle}
                     </span>
-                    <span className="text-[10px] text-[#48cae4] font-bold bg-[#101f42]/90 border border-[#00b4d8]/40 px-2 py-0.5 rounded-full shadow">
+                    <span className="text-[10px] text-[#48cae4] font-bold bg-[#101f42]/90 border border-[#00b4d8]/40 px-2 py-0.5 rounded-full shadow shrink-0">
                       Toca para ver tarjeta ↗
                     </span>
                   </div>
@@ -118,24 +135,27 @@ const FormattedMessage: React.FC<MessageItemProps> = ({ content, role }) => {
             );
 
             if (isImageUrl && href) {
+              const info = getVehicleInfoFromImage(content, href);
+              const cardTitle = textStr && !textStr.toUpperCase().includes("FOTO") ? textStr : info.title;
+
               return (
                 <div 
-                  onClick={() => handleCarCardClick(href)}
+                  onClick={() => handleCarCardClick(href, cardTitle)}
                   className="my-3 rounded-2xl overflow-hidden border border-[#00b4d8]/40 bg-[#0a1128] shadow-lg cursor-pointer group hover:border-[#00b4d8] transition-all hover:scale-[1.01]"
-                  title="Toca para ver la ficha técnica completa del auto"
+                  title={`Toca para ver la ficha técnica de ${cardTitle}`}
                 >
                   <div className="relative h-48 w-full bg-slate-900 overflow-hidden">
                     <img
                       referrerPolicy="no-referrer"
                       src={href}
-                      alt="Foto del vehículo"
+                      alt={cardTitle}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-between p-3 pointer-events-none">
-                      <span className="text-[11px] font-black text-white bg-black/60 px-2 py-0.5 rounded backdrop-blur-sm">
-                        {detectedQuery || "Ver Ficha del Auto"}
+                      <span className="text-[11px] font-black text-white bg-black/60 px-2 py-0.5 rounded backdrop-blur-sm max-w-[70%] truncate">
+                        {cardTitle}
                       </span>
-                      <span className="text-[10px] text-[#48cae4] font-bold bg-[#101f42]/90 border border-[#00b4d8]/40 px-2 py-0.5 rounded-full shadow">
+                      <span className="text-[10px] text-[#48cae4] font-bold bg-[#101f42]/90 border border-[#00b4d8]/40 px-2 py-0.5 rounded-full shadow shrink-0">
                         Toca para ver tarjeta ↗
                       </span>
                     </div>
@@ -148,24 +168,27 @@ const FormattedMessage: React.FC<MessageItemProps> = ({ content, role }) => {
             if (href && (href.startsWith("http://") || href.startsWith("https://"))) {
               // If it looks like an image URL by query params or extension, show as image
               if (href.includes("autoventas") || href.includes("gtauto") || href.includes("autoexito") || href.includes("cars")) {
+                const info = getVehicleInfoFromImage(content, href);
+                const cardTitle = info.title;
+
                 return (
                   <div 
-                    onClick={() => handleCarCardClick(href)}
+                    onClick={() => handleCarCardClick(href, cardTitle)}
                     className="my-3 rounded-2xl overflow-hidden border border-[#00b4d8]/40 bg-[#0a1128] shadow-lg cursor-pointer group hover:border-[#00b4d8] transition-all hover:scale-[1.01]"
-                    title="Toca para ver la ficha técnica completa del auto"
+                    title={`Toca para ver la ficha técnica de ${cardTitle}`}
                   >
                     <div className="relative h-48 w-full bg-slate-900 overflow-hidden">
                       <img
                         referrerPolicy="no-referrer"
                         src={href}
-                        alt="Foto del auto"
+                        alt={cardTitle}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-between p-3 pointer-events-none">
-                        <span className="text-[11px] font-black text-white bg-black/60 px-2 py-0.5 rounded backdrop-blur-sm">
-                          {detectedQuery || "Ver Ficha del Auto"}
+                        <span className="text-[11px] font-black text-white bg-black/60 px-2 py-0.5 rounded backdrop-blur-sm max-w-[70%] truncate">
+                          {cardTitle}
                         </span>
-                        <span className="text-[10px] text-[#48cae4] font-bold bg-[#101f42]/90 border border-[#00b4d8]/40 px-2 py-0.5 rounded-full shadow">
+                        <span className="text-[10px] text-[#48cae4] font-bold bg-[#101f42]/90 border border-[#00b4d8]/40 px-2 py-0.5 rounded-full shadow shrink-0">
                           Toca para ver tarjeta ↗
                         </span>
                       </div>
@@ -244,11 +267,11 @@ export default function ChatWidget() {
 
       const dealerName = dealer || "GT Auto Imports";
       const munName = municipality || (dealerName.includes("GT Auto") ? "Dorado" : "Vega Alta");
-      const priceText = price ? `${Number(price).toLocaleString()}` : "precio de oportunidad";
-      const paymentText = estimated_monthly_payment ? ` (pago est. ~${estimated_monthly_payment}/mes)` : "";
+      const priceText = price ? `$${Number(price).toLocaleString()}` : "precio de oportunidad";
+      const paymentText = estimated_monthly_payment ? ` (pago est. ~$${estimated_monthly_payment}/mes)` : "";
       const photoMarkdown = photo ? `\n\n[FOTO](${photo})\n\n` : "\n\n";
 
-      const text = `¡Excelente elección! Veo que te interesa el **${year || ''} ${make || ''} ${model || ''} ${trim || ''}**${photoMarkdown}Esta unidad está disponible en **${dealerName}** (${munName}) por **${priceText}**${paymentText}.\n\n¿Te gustaría que agendemos una cita o prueba de manejo en el dealer, o prefieres que primero te oriente sobre las opciones de financiamiento y el pago mensual cómodo?`;
+      const text = `¡Excelente elección! Veo que estás viendo el **${year || ''} ${make || ''} ${model || ''} ${trim || ''}**${photoMarkdown}Esta unidad está disponible en **${dealerName}** (${munName}) por **${priceText}**${paymentText}.\n\n¿Te gustaría que **agendemos una cita y prueba de manejo** en el dealer para que lo veas en persona, o prefieres que **coordinemos una llamada directa con el asesor de ventas** de ${dealerName} para darte los detalles de financiamiento y evaluar tu trade-in?`;
 
       setMsgs(prev => [...prev, { role: "assistant", content: text }]);
     };
@@ -292,12 +315,27 @@ export default function ChatWidget() {
     }
   }
 
-  const quickPrompts = [
-    "Quiero ver opciones de pago cómodo",
-    "¿Qué SUV familiares tienen disponibles?",
-    "Tengo un carro para trade-in",
-    "Quiero coordinar una prueba de manejo"
-  ];
+  const lastMsg = msgs[msgs.length - 1];
+  const isCarContext = lastMsg && lastMsg.role === "assistant" && (
+    lastMsg.content.includes("disponible en") || 
+    lastMsg.content.includes("prueba de manejo") || 
+    lastMsg.content.includes("cita") ||
+    lastMsg.content.includes("asesor")
+  );
+
+  const activePrompts = isCarContext
+    ? [
+        "📅 Agendar Cita y Prueba de Manejo",
+        "📞 Coordinar llamada con Asesor de Ventas",
+        "💵 Consultar Pago Mensual & Pronto",
+        "🚗 Tengo auto para entregar en trade-in"
+      ]
+    : [
+        "Quiero ver opciones de pago cómodo",
+        "¿Qué SUV familiares tienen disponibles?",
+        "Tengo un carro para trade-in",
+        "Quiero coordinar una prueba de manejo"
+      ];
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
@@ -370,13 +408,13 @@ export default function ChatWidget() {
             </div>
 
             {/* Quick Prompts Chips */}
-            {msgs.length <= 3 && !loading && (
+            {!loading && (
               <div className="px-3.5 py-2 border-t border-white/5 bg-[#080d1f] flex gap-1.5 overflow-x-auto no-scrollbar">
-                {quickPrompts.map((qp, idx) => (
+                {activePrompts.map((qp, idx) => (
                   <button
                     key={idx}
                     onClick={() => handleSend(qp)}
-                    className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-[#14234b] hover:bg-[#1c2d5a] border border-white/10 text-[10.5px] text-slate-300 hover:text-white transition-all flex items-center gap-1 shrink-0"
+                    className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-[#14234b] hover:bg-[#1c2d5a] border border-[#00b4d8]/30 hover:border-[#00b4d8] text-[10.5px] text-slate-200 hover:text-white transition-all flex items-center gap-1 shrink-0 font-medium"
                   >
                     <span>{qp}</span>
                   </button>

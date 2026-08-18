@@ -311,3 +311,58 @@ export function findVehicleBySlug(inventory: Vehicle[], slug: string): Vehicle |
   const cleanSlug = slug.toLowerCase().trim();
   return inventory.find(v => getVehicleSlug(v) === cleanSlug);
 }
+
+export function findVehicleByPhotoOrQuery(inventory: Vehicle[], photo?: string, query?: string): Vehicle | undefined {
+  if (photo && typeof photo === "string") {
+    // 1. Try exact full string match or decoded match
+    const exact = inventory.find(v => v.FotoWeblink && (v.FotoWeblink.includes(photo) || photo.includes(v.FotoWeblink.split(",")[0])));
+    if (exact) return exact;
+
+    // 2. Extract media unique identifier if present (e.g. media_6a2ac1ecb52d6 or vehicles%2F8eqpWDAM)
+    const mediaMatch = photo.match(/media_[a-zA-Z0-9]+/i) || photo.match(/vehicles[%2F\/]+([a-zA-Z0-9]+)/i) || photo.match(/\/([a-zA-Z0-9_-]+\.(?:jpeg|jpg|png|webp))/i);
+    if (mediaMatch && mediaMatch[0]) {
+      const token = mediaMatch[0];
+      const matchByToken = inventory.find(v => v.FotoWeblink && v.FotoWeblink.includes(token));
+      if (matchByToken) return matchByToken;
+    }
+  }
+
+  if (query && typeof query === "string") {
+    const q = query.toLowerCase().replace(/[*_#\[\]]/g, "").trim();
+    if (!q || q === "ver ficha técnica" || q === "foto del vehículo") return undefined;
+
+    // Check year in query
+    const yearMatch = q.match(/\b(20\d\d)\b/);
+    const year = yearMatch ? yearMatch[1] : null;
+
+    // 1. Exact match with year, make, model and trim
+    const exactMatch = inventory.find(v => {
+      const full = `${v["Año"]} ${v.Marca} ${v.Modelo} ${v["Sub-Modelo/Trim Level"] || ""}`.toLowerCase();
+      if (year && v["Año"] !== year) return false;
+      return full.includes(q) || q.includes(`${v["Año"]} ${v.Marca.toLowerCase()} ${v.Modelo.toLowerCase()}`);
+    });
+    if (exactMatch) return exactMatch;
+
+    // 2. Match make & model with year check
+    const makeModelMatch = inventory.find(v => {
+      if (year && v["Año"] !== year) return false;
+      const make = v.Marca.toLowerCase();
+      const model = v.Modelo.toLowerCase();
+      const hasMake = q.includes(make);
+      const hasModel = q.includes(` ${model}`) || q.includes(`${model} `) || q.endsWith(model) || q === model || q.includes(model);
+      return hasMake && hasModel;
+    });
+    if (makeModelMatch) return makeModelMatch;
+
+    // 3. Fallback: match by make and model anywhere
+    const fallbackMatch = inventory.find(v => {
+      const make = v.Marca.toLowerCase();
+      const model = v.Modelo.toLowerCase();
+      return q.includes(make) && q.includes(model);
+    });
+    if (fallbackMatch) return fallbackMatch;
+  }
+
+  return undefined;
+}
+

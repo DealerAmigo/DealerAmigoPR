@@ -3,7 +3,16 @@ import { INVENTORY } from "./data";
 import { DORADO_INVENTORY } from "./dorado_inventory";
 import { AUTOEXITO_INVENTORY } from "./autoexito_inventory";
 import { Vehicle, FilterState, PageRoute } from "./types";
-import { inferCarroceria, inferMunicipio, inferDealer, findVehicleBySlug, getVehicleSlug } from "./utils/helpers";
+import { 
+  inferCarroceria, 
+  inferMunicipio, 
+  inferDealer, 
+  findVehicleBySlug, 
+  findVehicleByPhotoOrQuery,
+  getVehicleSlug,
+  parsePrice,
+  getEstimatedMonthlyPayment
+} from "./utils/helpers";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
 import { RootDealerLanding } from "./components/RootDealerLanding";
@@ -135,31 +144,52 @@ export default function App() {
   // Global listener to navigate to a vehicle card when clicked inside chat
   useEffect(() => {
     const handleOpenVehicleCard = (e: any) => {
-      const { vehicle, slug, query } = e.detail || {};
+      const { vehicle, slug, query, exactPhoto, imgSrc } = e.detail || {};
+      
+      let matchedVehicle: Vehicle | undefined = undefined;
+
       if (vehicle) {
-        const targetSlug = slug || getVehicleSlug(vehicle);
-        navigate(`/inventario/${targetSlug}` as PageRoute);
+        matchedVehicle = vehicle;
       } else if (slug) {
-        const found = findVehicleBySlug(enhancedInventory, slug);
-        if (found) {
-          navigate(`/inventario/${slug}` as PageRoute);
-        } else {
-          setFilters(prev => ({ ...prev, search: slug.replace(/-/g, " ") }));
-          navigate("/inventario");
+        matchedVehicle = findVehicleBySlug(enhancedInventory, slug);
+      } else {
+        const photoToMatch = exactPhoto || imgSrc;
+        matchedVehicle = findVehicleByPhotoOrQuery(enhancedInventory, photoToMatch, query);
+      }
+
+      if (matchedVehicle) {
+        const targetSlug = getVehicleSlug(matchedVehicle);
+        navigate(`/inventario/${targetSlug}` as PageRoute);
+
+        // Steer Shakira's chat conversation to this specific vehicle
+        const photos = String(matchedVehicle.FotoWeblink || "").split(",").map(u => u.trim()).filter(Boolean);
+        const priceNum = parsePrice(matchedVehicle.Precio);
+        const monthlyEst = getEstimatedMonthlyPayment(matchedVehicle.Precio);
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("open-chat-with-car", {
+              detail: {
+                year: matchedVehicle["Año"],
+                make: matchedVehicle.Marca,
+                model: matchedVehicle.Modelo,
+                trim: matchedVehicle["Sub-Modelo/Trim Level"] || "",
+                price: priceNum,
+                estimated_monthly_payment: monthlyEst > 0 ? monthlyEst : undefined,
+                dealer: matchedVehicle.Dealer || inferDealer(matchedVehicle, 0),
+                municipality: matchedVehicle.Municipio || inferMunicipio(matchedVehicle, 0),
+                photo: photos[0] || ""
+              }
+            })
+          );
         }
-      } else if (query) {
-        const found = enhancedInventory.find(v => {
-          const q = query.toLowerCase();
-          return `${v["Año"]} ${v.Marca} ${v.Modelo}`.toLowerCase().includes(q) ||
-                 (v.FotoWeblink && v.FotoWeblink.toLowerCase().includes(q));
-        });
-        if (found) {
-          const targetSlug = getVehicleSlug(found);
-          navigate(`/inventario/${targetSlug}` as PageRoute);
-        } else {
-          setFilters(prev => ({ ...prev, search: query }));
-          navigate("/inventario");
-        }
+        return;
+      }
+
+      // Fallback: If no single vehicle matched, go to inventory with search filter
+      if (query && typeof query === "string" && !query.startsWith("http")) {
+        setFilters(prev => ({ ...prev, search: query }));
+        navigate("/inventario");
       }
     };
 
