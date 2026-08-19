@@ -163,6 +163,7 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
               ref={videoRef}
               src="/shakira_intro.mp4"
               poster="/shakira_poster.jpg"
+              crossOrigin="use-credentials"
               autoPlay 
               muted 
               loop 

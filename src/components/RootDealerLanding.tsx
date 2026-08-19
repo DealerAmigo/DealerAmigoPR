@@ -179,6 +179,7 @@ export const RootDealerLanding: React.FC<RootDealerLandingProps> = ({
               ref={heroVideoRef}
               src="/shakira_intro.mp4"
               poster="/shakira_poster.jpg"
+              crossOrigin="use-credentials"
               autoPlay 
               muted 
               loop 
@@ -313,6 +314,7 @@ export const RootDealerLanding: React.FC<RootDealerLandingProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-6 relative aspect-video w-full rounded-3xl overflow-hidden shadow-[0_0_30px_rgba(0,180,216,0.25)] border border-white/10 bg-[#0a1128]">
               <video
+                crossOrigin="use-credentials"
                 autoPlay
                 muted
                 playsInline
