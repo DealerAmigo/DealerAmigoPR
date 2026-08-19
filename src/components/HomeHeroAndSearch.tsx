@@ -179,7 +179,6 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
               onClick={togglePlay}
             >
               <source src="/shakira_intro.mp4" type="video/mp4" />
-              <source src="/Shakira_intro.mp4" type="video/mp4" />
               Tu navegador no soporta la reproducción directa de video.
             </video>
 

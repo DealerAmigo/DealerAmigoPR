@@ -189,7 +189,6 @@ export const RootDealerLanding: React.FC<RootDealerLandingProps> = ({
               onClick={toggleHeroPlay}
             >
               <source src="/shakira_intro.mp4" type="video/mp4" />
-              <source src="/Shakira_intro.mp4" type="video/mp4" />
               Tu navegador no soporta la reproducción directa de video.
             </video>
 
@@ -325,7 +324,6 @@ export const RootDealerLanding: React.FC<RootDealerLandingProps> = ({
                 src="/shakira_intro.mp4"
               >
                 <source src="/shakira_intro.mp4" type="video/mp4" />
-                <source src="/Shakira_intro.mp4" type="video/mp4" />
                 Tu navegador no soporta la reproducción de video.
               </video>
           </div>
