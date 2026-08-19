@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { PageRoute, FilterState, Vehicle } from "../types";
+import { useVideoUrl } from "../hooks/useVideoUrl";
 import { 
   CARROCERIAS, 
   MARCAS_POPULARES, 
@@ -41,81 +42,6 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
   onApplyFilters,
   onSelectVehicle
 }) => {
-  // Video player state
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isMuted, setIsMuted] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [videoError, setVideoError] = useState(false);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    video.muted = true;
-    video.defaultMuted = true;
-
-    const attemptPlay = () => {
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsPlaying(true);
-            setVideoError(false);
-          })
-          .catch((err) => {
-            console.warn("Autoplay deferred or blocked by browser:", err);
-            setIsPlaying(false);
-          });
-      }
-    };
-
-    // Try immediately and on ready events
-    attemptPlay();
-
-    video.addEventListener("loadedmetadata", attemptPlay);
-    video.addEventListener("canplay", attemptPlay);
-    video.addEventListener("playing", () => setIsPlaying(true));
-    video.addEventListener("pause", () => setIsPlaying(false));
-
-    return () => {
-      video.removeEventListener("loadedmetadata", attemptPlay);
-      video.removeEventListener("canplay", attemptPlay);
-    };
-  }, []);
-
-  const togglePlay = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (video.paused) {
-      video.play()
-        .then(() => {
-          setIsPlaying(true);
-          setVideoError(false);
-        })
-        .catch((err) => {
-          console.error("Error playing video:", err);
-        });
-    } else {
-      video.pause();
-      setIsPlaying(false);
-    }
-  };
-
-  const toggleMute = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    const video = videoRef.current;
-    if (!video) return;
-
-    const newMuted = !video.muted;
-    video.muted = newMuted;
-    setIsMuted(newMuted);
-
-    if (video.paused) {
-      video.play().then(() => setIsPlaying(true)).catch(() => {});
-    }
-  };
   // Smart Search form state
   const [carroceria, setCarroceria] = useState("Todos");
   const [marca, setMarca] = useState("Todas");
@@ -157,68 +83,16 @@ export const HomeHeroAndSearch: React.FC<HomeHeroAndSearchProps> = ({
       {/* HERO SECTION */}
       <section className="relative pt-8 sm:pt-14 px-4 sm:px-6">
         <div className="max-w-[1240px] mx-auto text-center space-y-6">
-          {/* Shakira Presentation Video */}
+                    {/* Hero Video */}
           <div className="w-full max-w-4xl mx-auto rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(0,180,216,0.25)] border border-[#00b4d8]/30 bg-[#0a1128] relative aspect-video mt-4 mb-6 group">
-            <video 
-              ref={videoRef}
-              src="/shakira_intro.mp4"
-              poster="/shakira_poster.jpg"
-              crossOrigin="use-credentials"
-              autoPlay 
-              muted 
-              loop 
-              playsInline 
-              controls
-              preload="auto"
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-              onError={(e) => {
-                console.error("Video loading error:", e);
-                setVideoError(true);
-              }}
-              className="w-full h-full object-cover cursor-pointer"
-              onClick={togglePlay}
-            >
-              <source src="/shakira_intro.mp4" type="video/mp4" />
-              Tu navegador no soporta la reproducción directa de video.
-            </video>
-
-            {/* Floating Sound and Play/Pause Controls Overlay */}
-            <div className="absolute top-4 right-4 z-30 flex items-center gap-2 pointer-events-auto">
-              <button
-                type="button"
-                onClick={toggleMute}
-                className="px-3.5 py-2 rounded-xl bg-black/75 hover:bg-black/95 backdrop-blur-md border border-white/20 text-white text-xs font-bold flex items-center gap-2 shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer"
-              >
-                {isMuted ? (
-                  <>
-                    <VolumeX size={15} className="text-[#ffb703]" />
-                    <span>Activar Sonido</span>
-                  </>
-                ) : (
-                  <>
-                    <Volume2 size={15} className="text-[#00b4d8]" />
-                    <span>Silenciar</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Play Button Overlay when paused */}
-            {!isPlaying && (
-              <div 
-                className="absolute inset-0 bg-black/30 pointer-events-none flex items-center justify-center z-20"
-              >
-                <button
-                  type="button"
-                  onClick={togglePlay}
-                  aria-label="Reproducir video de Shakira"
-                  className="pointer-events-auto w-16 h-16 rounded-full bg-[#00b4d8] text-[#0a1128] flex items-center justify-center shadow-[0_0_30px_rgba(0,180,216,0.8)] hover:scale-110 active:scale-95 transition-all cursor-pointer"
-                >
-                  <Play size={28} className="fill-current ml-1" />
-                </button>
-              </div>
-            )}
+            <iframe 
+              className="absolute top-0 left-0 w-full h-full" 
+              src="https://www.youtube.com/embed/E4veMe2yOOo?autoplay=1&mute=1&loop=1&playlist=E4veMe2yOOo&controls=1&rel=0" 
+              title="Presentación DealerAmigo" 
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowFullScreen
+            ></iframe>
           </div>
 
           {/* Hero CTAs */}
